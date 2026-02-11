@@ -28,6 +28,15 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
 - **Solution format**: .slnx (not .sln)
 - **PLAN.md**: Always keep up to date with current progress. Update checkboxes and phase statuses after completing work.
 - **README.md**: Keep in sync when adding new commands, scripts, or changing architecture.
+- **Git commits**: Use [Conventional Commits](https://www.conventionalcommits.org/) format:
+  - `feat: add new feature`
+  - `fix: bug fix`
+  - `docs: documentation changes`
+  - `refactor: code refactoring`
+  - `test: add or update tests`
+  - `chore: maintenance tasks`
+  - `perf: performance improvements`
+  - Always include `Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>` (or current model) in commit body
 
 ## Commands
 
