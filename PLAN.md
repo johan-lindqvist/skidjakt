@@ -7,7 +7,7 @@
 | Phase 1 | **DONE** | Project Scaffolding |
 | Phase 2 | **DONE** | First Scraper + API (Skilink) |
 | Phase 3 | **DONE** | Frontend MVP |
-| Phase 4 | **DONE** | Remaining Scrapers + Unit Tests |
+| Phase 4 | **IN PROGRESS** | Remaining Scrapers + Unit Tests |
 | Phase 5 | **DONE** | Polish & Deploy |
 
 ---
@@ -50,10 +50,14 @@
 
 ## Phase 4: Remaining Scrapers
 
-- [x] Implement `AlpresorScraper` (alpresor.se/sista-minuten/)
-- [x] Implement `NortlanderScraper` (nortlander.se)
-- [x] Implement `SlopestarScraper` (slopestar.se - HTTP first, Playwright fallback)
-- [x] All scrapers registered in DI, 15 unit tests passing
+- [x] Implement `SkilinkScraper` — rewritten for actual HTML structure (`table#tourlist-table tr.item-row`, pagination)
+- [x] Implement `SlopestarScraper` — rewritten to use AJAX endpoint (`ajax_show-earlybookings.php`, `div.st-list-discount-container`)
+- [x] Disable `AlpresorScraper` — requires Playwright (client-side React app)
+- [x] Disable `NortlanderScraper` — requires Playwright (Next.js client-side search)
+- [x] HTML test fixtures for Skilink and Slopestar
+- [x] Unit tests: 53 total (38 scraper + 15 repository)
+- [ ] Implement `AlpresorScraper` with Playwright (site requires JS rendering)
+- [ ] Implement `NortlanderScraper` with Playwright (site requires JS rendering)
 
 ## Phase 5: Polish & Deploy
 
