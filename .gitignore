@@ -1,0 +1,41 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.exe
+*.pdb
+*.log
+.vs/
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Environment
+.env
+.env.*
+
+# IDE
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Misc
+nul
