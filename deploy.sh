@@ -14,6 +14,11 @@ set -euo pipefail
 APP_DIR="/opt/skidjakt"
 COMPOSE="docker compose"
 
+# Use production compose file if it exists (for reverse proxy setup)
+if [[ -f "$APP_DIR/docker-compose.override.yml" ]]; then
+    COMPOSE="docker compose"  # Will automatically pick up override file
+fi
+
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'

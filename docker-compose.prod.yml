@@ -1,0 +1,36 @@
+# docker-compose.prod.yml
+#
+# Production configuration for running behind nginx reverse proxy.
+# Uses internal ports only (no direct exposure to the internet).
+#
+# Usage: docker compose -f docker-compose.prod.yml up -d
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "127.0.0.1:5000:8080"  # Only accessible from localhost
+    volumes:
+      - db-data:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+    restart: unless-stopped
+    networks:
+      - skidjakt
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "127.0.0.1:8080:80"    # Only accessible from localhost
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - skidjakt
+
+volumes:
+  db-data:
+
+networks:
+  skidjakt:
+    driver: bridge

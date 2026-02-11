@@ -84,6 +84,8 @@ curl -X POST http://localhost:5000/api/scrape/trigger
 
 ## Deploy to DigitalOcean
 
+> **Using a custom domain?** See [DOMAIN-SETUP.md](DOMAIN-SETUP.md) for configuring HTTPS with `skidjakt.linkasaurus.se`.
+
 ### First-time setup
 
 1. Create a droplet (Ubuntu 22.04+, 1 GB RAM minimum).
@@ -144,6 +146,17 @@ ssh root@YOUR_DROPLET_IP "cd /opt/skidjakt && docker compose restart"
 # Backup database
 ssh root@YOUR_DROPLET_IP "docker compose cp backend:/app/data/skidjakt.db ./skidjakt-backup.db"
 ```
+
+### Custom domain setup (skidjakt.linkasaurus.se)
+
+See [DOMAIN-SETUP.md](DOMAIN-SETUP.md) for full instructions.
+
+**Quick version:**
+1. Create DNS A record: `skidjakt.linkasaurus.se` → your droplet IP
+2. Push the setup files: `git push origin main`
+3. Run setup script on droplet: `sudo bash /opt/skidjakt/setup-domain.sh`
+
+This configures nginx with HTTPS (Let's Encrypt) as a reverse proxy.
 
 ## Architecture
 
