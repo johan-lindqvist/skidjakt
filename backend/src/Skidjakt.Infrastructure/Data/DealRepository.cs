@@ -153,10 +153,13 @@ public class DealRepository : IDealRepository
 		// Get all existing deals for this agency
 		var existingDeals = await _db.Deals.Where(d => d.Agency == agency).ToDictionaryAsync(d => d.ExternalId, ct);
 
-		// Track which external IDs are in the incoming batch
-		var incomingExternalIds = new HashSet<string>(deals.Select(d => d.ExternalId));
+		// Deduplicate incoming batch by ExternalId (keep last occurrence)
+		var deduplicatedDeals = deals.GroupBy(d => d.ExternalId).Select(g => g.Last()).ToList();
 
-		foreach (var deal in deals)
+		// Track which external IDs are in the incoming batch
+		var incomingExternalIds = new HashSet<string>(deduplicatedDeals.Select(d => d.ExternalId));
+
+		foreach (var deal in deduplicatedDeals)
 		{
 			if (existingDeals.TryGetValue(deal.ExternalId, out var existing))
 			{

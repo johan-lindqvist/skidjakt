@@ -58,7 +58,17 @@ public class SkilinkScraper : IDealScraper
 				await Task.Delay(500, ct);
 			}
 
-			_logger.LogInformation("Scraped {Count} deals from Skilink", allDeals.Count);
+			// Deduplicate by ExternalId (pages may have overlapping deals)
+			var deduplicated = allDeals.GroupBy(d => d.ExternalId).Select(g => g.Last()).ToList();
+
+			_logger.LogInformation(
+				"Scraped {Count} deals from Skilink ({Raw} raw, {Dupes} duplicates removed)",
+				deduplicated.Count,
+				allDeals.Count,
+				allDeals.Count - deduplicated.Count
+			);
+
+			return deduplicated;
 		}
 		catch (OperationCanceledException)
 		{

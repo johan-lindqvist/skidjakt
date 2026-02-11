@@ -60,7 +60,17 @@ public class SlopestarScraper : IDealScraper
 				await Task.Delay(500, ct);
 			}
 
-			_logger.LogInformation("Scraped {Count} deals from Slopestar", allDeals.Count);
+			// Deduplicate by ExternalId (later pages may have overlapping deals)
+			var deduplicated = allDeals.GroupBy(d => d.ExternalId).Select(g => g.Last()).ToList();
+
+			_logger.LogInformation(
+				"Scraped {Count} deals from Slopestar ({Raw} raw, {Dupes} duplicates removed)",
+				deduplicated.Count,
+				allDeals.Count,
+				allDeals.Count - deduplicated.Count
+			);
+
+			return deduplicated;
 		}
 		catch (OperationCanceledException)
 		{
