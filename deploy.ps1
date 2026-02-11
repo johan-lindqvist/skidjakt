@@ -88,7 +88,14 @@ fi
     Invoke-Ssh "git clone $RepoUrl /opt/skidjakt"
 
     Write-Host "`n--- Building and starting services ---" -ForegroundColor Green
-    Invoke-Ssh "cd /opt/skidjakt && docker compose up -d --build"
+    Invoke-Ssh @"
+cd /opt/skidjakt
+if docker compose version &>/dev/null 2>&1; then
+    docker compose up -d --build
+else
+    docker-compose up -d --build
+fi
+"@
 
     Write-Host "`n=== Setup complete! ===" -ForegroundColor Yellow
     Write-Host "App should be running at http://$HostName" -ForegroundColor Green
@@ -104,10 +111,24 @@ Write-Host "`n--- Pulling latest code ---" -ForegroundColor Green
 Invoke-Ssh "cd /opt/skidjakt && git pull origin main"
 
 Write-Host "`n--- Building Docker images ---" -ForegroundColor Green
-Invoke-Ssh "cd /opt/skidjakt && docker compose build"
+Invoke-Ssh @"
+cd /opt/skidjakt
+if docker compose version &>/dev/null 2>&1; then
+    docker compose build
+else
+    docker-compose build
+fi
+"@
 
 Write-Host "`n--- Restarting services ---" -ForegroundColor Green
-Invoke-Ssh "cd /opt/skidjakt && docker compose up -d"
+Invoke-Ssh @"
+cd /opt/skidjakt
+if docker compose version &>/dev/null 2>&1; then
+    docker compose up -d
+else
+    docker-compose up -d
+fi
+"@
 
 Write-Host "`n--- Cleaning up old images ---" -ForegroundColor Green
 Invoke-Ssh "docker image prune -f"

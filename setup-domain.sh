@@ -93,13 +93,22 @@ if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/
     fi
 fi
 
+# Detect Docker Compose command
+if docker compose version &>/dev/null 2>&1; then
+    COMPOSE="docker compose"
+elif command -v docker-compose &>/dev/null; then
+    COMPOSE="docker-compose"
+else
+    error "Neither 'docker compose' nor 'docker-compose' is available"
+fi
+
 # -------------------------------------------------------------------
 # Step 3: Stop Docker containers on port 80 temporarily
 # -------------------------------------------------------------------
 log "Stopping Docker containers temporarily (for certbot)"
 
 cd "$APP_DIR"
-docker compose down
+$COMPOSE down
 
 # -------------------------------------------------------------------
 # Step 4: Obtain SSL certificate
@@ -148,7 +157,7 @@ if [[ -f docker-compose.prod.yml ]]; then
 fi
 
 # Start with internal ports only
-docker compose up -d --build
+$COMPOSE up -d --build
 
 # -------------------------------------------------------------------
 # Step 7: Verify

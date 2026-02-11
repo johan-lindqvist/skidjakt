@@ -12,11 +12,15 @@
 set -euo pipefail
 
 APP_DIR="/opt/skidjakt"
-COMPOSE="docker compose"
 
-# Use production compose file if it exists (for reverse proxy setup)
-if [[ -f "$APP_DIR/docker-compose.override.yml" ]]; then
-    COMPOSE="docker compose"  # Will automatically pick up override file
+# Detect which Docker Compose command to use
+if docker compose version &>/dev/null 2>&1; then
+    COMPOSE="docker compose"
+elif command -v docker-compose &>/dev/null; then
+    COMPOSE="docker-compose"
+else
+    echo "ERROR: Neither 'docker compose' nor 'docker-compose' is available"
+    exit 1
 fi
 
 # Colors
