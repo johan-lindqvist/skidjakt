@@ -102,10 +102,7 @@ git pull origin main
 # Remove stale override files (override merges with base, causing port conflicts)
 rm -f docker-compose.override.yml
 
-log "Building Docker images"
-$COMPOSE $COMPOSE_FILE build
-
-log "Stopping old containers"
+log "Stopping old containers (images are pre-loaded via deploy.ps1)"
 $COMPOSE $COMPOSE_FILE down
 
 log "Starting services"

@@ -3,9 +3,9 @@
     Deploy Skidjakt to a DigitalOcean droplet from Windows.
 
 .DESCRIPTION
-    Connects via SSH to the droplet and pulls the latest code, rebuilds
-    Docker images, and restarts services. Reads configuration from .env file
-    if parameters are not provided.
+    Builds Docker images locally, transfers them to the droplet via
+    docker save + scp + docker load, and restarts services. This avoids
+    resource-intensive builds on the small droplet.
 
 .PARAMETER HostName
     The droplet IP address or hostname (optional, reads from .env if not specified).
@@ -69,14 +69,19 @@ if (-not $HostName) {
     exit 1
 }
 
+function Get-SshBaseArgs {
+    $args_ = @()
+    if ($KeyFile) {
+        $args_ += "-i", $KeyFile
+    }
+    $args_ += "-o", "StrictHostKeyChecking=accept-new"
+    return $args_
+}
+
 function Invoke-Ssh {
     param([string]$Command)
 
-    $sshArgs = @()
-    if ($KeyFile) {
-        $sshArgs += "-i", $KeyFile
-    }
-    $sshArgs += "-o", "StrictHostKeyChecking=accept-new"
+    $sshArgs = Get-SshBaseArgs
     $sshArgs += "$User@$HostName"
     $sshArgs += $Command
 
@@ -85,6 +90,49 @@ function Invoke-Ssh {
     if ($LASTEXITCODE -ne 0) {
         throw "SSH command failed with exit code $LASTEXITCODE"
     }
+}
+
+function Invoke-Scp {
+    param([string]$LocalPath, [string]$RemotePath)
+
+    $scpArgs = Get-SshBaseArgs
+    $scpArgs += $LocalPath
+    $scpArgs += "${User}@${HostName}:${RemotePath}"
+
+    Write-Host ">> scp $LocalPath -> ${HostName}:${RemotePath}" -ForegroundColor Cyan
+    scp @scpArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "SCP failed with exit code $LASTEXITCODE"
+    }
+}
+
+function Build-AndTransferImages {
+    $imageTar = Join-Path $env:TEMP "skidjakt-images.tar"
+
+    Write-Host "`n--- Building backend image locally ---" -ForegroundColor Green
+    docker build -t skidjakt-backend:latest ./backend
+    if ($LASTEXITCODE -ne 0) { throw "Backend build failed" }
+
+    Write-Host "`n--- Building frontend image locally ---" -ForegroundColor Green
+    docker build -t skidjakt-frontend:latest ./frontend
+    if ($LASTEXITCODE -ne 0) { throw "Frontend build failed" }
+
+    Write-Host "`n--- Saving images to tar ---" -ForegroundColor Green
+    docker save skidjakt-backend:latest skidjakt-frontend:latest -o $imageTar
+    if ($LASTEXITCODE -ne 0) { throw "Docker save failed" }
+
+    $sizeMB = [math]::Round((Get-Item $imageTar).Length / 1MB, 1)
+    Write-Host "Image tar size: ${sizeMB} MB" -ForegroundColor Cyan
+
+    Write-Host "`n--- Transferring images to droplet ---" -ForegroundColor Green
+    Invoke-Scp -LocalPath $imageTar -RemotePath "/tmp/skidjakt-images.tar"
+
+    Write-Host "`n--- Loading images on droplet ---" -ForegroundColor Green
+    Invoke-Ssh "docker load -i /tmp/skidjakt-images.tar"
+
+    Write-Host "`n--- Cleaning up ---" -ForegroundColor Green
+    Invoke-Ssh "rm -f /tmp/skidjakt-images.tar"
+    Remove-Item -Force $imageTar -ErrorAction SilentlyContinue
 }
 
 # -------------------------------------------------------------------
@@ -114,33 +162,28 @@ fi
 '@
     Invoke-Ssh $composeScript
 
-    Write-Host "`n--- Installing Docker buildx (optional) ---" -ForegroundColor Green
-    $buildxScript = @'
-mkdir -p ~/.docker/cli-plugins
-ARCH=$(uname -m)
-case "$ARCH" in
-    x86_64) ARCH="amd64" ;;
-    aarch64) ARCH="arm64" ;;
-esac
-BUILDX_VERSION=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
-curl -SL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-${ARCH}" -o ~/.docker/cli-plugins/docker-buildx 2>/dev/null || true
-chmod +x ~/.docker/cli-plugins/docker-buildx 2>/dev/null || true
-'@
-    Invoke-Ssh $buildxScript
-
     Write-Host "`n--- Cloning repository ---" -ForegroundColor Green
     Invoke-Ssh "rm -rf /opt/skidjakt && git clone $RepoUrl /opt/skidjakt"
 
-    Write-Host "`n--- Building and starting services ---" -ForegroundColor Green
+    # Build locally and transfer images instead of building on the droplet
+    Build-AndTransferImages
+
+    Write-Host "`n--- Starting services ---" -ForegroundColor Green
     $startScript = @'
 cd /opt/skidjakt
 if docker compose version &>/dev/null 2>&1; then
-    docker compose up -d --build
+    COMPOSE="docker compose"
+elif command -v docker-compose &>/dev/null; then
+    COMPOSE="docker-compose"
 else
-    docker-compose up -d --build
+    echo "ERROR: No docker compose found"; exit 1
 fi
+$COMPOSE -f docker-compose.prod.yml up -d
 '@
     Invoke-Ssh $startScript
+
+    Write-Host "`n--- Checking service health ---" -ForegroundColor Green
+    Invoke-Ssh "sleep 5 && curl -sf http://localhost:5000/api/health || echo 'Backend not ready yet (may need a few more seconds)'"
 
     Write-Host "`n=== Setup complete! ===" -ForegroundColor Yellow
     Write-Host "App should be running at http://$HostName" -ForegroundColor Green
@@ -152,10 +195,13 @@ fi
 # -------------------------------------------------------------------
 Write-Host "`n=== Deploying Skidjakt to $HostName ===" -ForegroundColor Yellow
 
-Write-Host "`n--- Pulling latest code ---" -ForegroundColor Green
+# Build locally and transfer images
+Build-AndTransferImages
+
+Write-Host "`n--- Pulling latest code (for config changes) ---" -ForegroundColor Green
 Invoke-Ssh "cd /opt/skidjakt && git pull origin main"
 
-Write-Host "`n--- Building and restarting services ---" -ForegroundColor Green
+Write-Host "`n--- Restarting services ---" -ForegroundColor Green
 $deployScript = @'
 cd /opt/skidjakt
 
@@ -178,7 +224,6 @@ fi
 # Remove stale override files (override merges with base, causing port conflicts)
 rm -f docker-compose.override.yml
 
-$COMPOSE $COMPOSE_FILE build
 $COMPOSE $COMPOSE_FILE down
 $COMPOSE $COMPOSE_FILE up -d
 '@

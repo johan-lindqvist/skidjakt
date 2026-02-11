@@ -7,7 +7,7 @@
 
 services:
   backend:
-    build: ./backend
+    image: skidjakt-backend:latest
     ports:
       - "127.0.0.1:5000:8080"  # Only accessible from localhost
     volumes:
@@ -19,7 +19,7 @@ services:
       - skidjakt
 
   frontend:
-    build: ./frontend
+    image: skidjakt-frontend:latest
     ports:
       - "127.0.0.1:8080:80"    # Only accessible from localhost
     depends_on:

@@ -86,8 +86,9 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
 - The scraping background service runs every 30 minutes (5 in dev)
 - Development is done on Windows; production runs on Linux (DigitalOcean droplet)
 - All deployment scripts read configuration from `.env` file (see `.env.example`)
-- The `deploy.ps1` script runs from Windows and SSHs to the droplet
-- The `deploy.sh` script runs directly on the droplet
+- The `deploy.ps1` script builds images locally, transfers via `scp`, and restarts on the droplet (no remote builds)
+- The `deploy.sh` script runs directly on the droplet (expects images to be pre-loaded via `docker load`)
+- Production compose (`docker-compose.prod.yml`) uses `image:` not `build:` — images are pre-built locally
 
 ## Gotchas & Learnings
 - **Docker Compose version**: The droplet may have `docker-compose` (v1, hyphen) instead of `docker compose` (v2, space). All scripts auto-detect which is available.
@@ -96,3 +97,4 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
 - **Initial scraping**: The scraping service checks the database on startup and only runs an initial scrape if no recent data exists. No need to manually trigger after fresh deploy.
 - **PowerShell module loading**: Use dot-sourcing (`. "path\script.ps1"`) not `Import-Module` for `.ps1` files. `Export-ModuleMember` only works in `.psm1` module files.
 - **Docker Compose override files**: NEVER use `docker-compose.override.yml` to change ports. Compose merges sequence fields (like `ports`), causing duplicate port bindings. Use `-f docker-compose.prod.yml` explicitly instead.
+- **Docker builds on droplet**: The small DigitalOcean droplet can't handle .NET SDK multi-stage builds (100% CPU). Always build images locally and transfer via `docker save` + `scp` + `docker load`.

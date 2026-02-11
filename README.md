@@ -96,7 +96,7 @@ curl -X POST http://localhost:5000/api/scrape/trigger
    ```powershell
    .\deploy.ps1 -Host YOUR_DROPLET_IP -Setup -RepoUrl git@github.com:youruser/skidjakt.git
    ```
-   This SSHs into the droplet and installs Docker, clones the repo, and starts the services.
+   This SSHs into the droplet and installs Docker, clones the repo, builds images locally, transfers them to the droplet, and starts the services.
 
 4. The app is now running at `http://YOUR_DROPLET_IP`.
 
@@ -108,11 +108,11 @@ Push your changes to `main`, then:
 .\deploy.ps1 -Host YOUR_DROPLET_IP
 ```
 
-This pulls the latest code, rebuilds images, and restarts containers.
+This builds Docker images locally, transfers them to the droplet via `scp`, and restarts containers. No compilation happens on the droplet.
 
 ### Manual deploy (on the droplet)
 
-If you're already SSH'd into the droplet:
+If you're already SSH'd into the droplet (images must already be loaded via `docker load`):
 
 ```bash
 bash /opt/skidjakt/deploy.sh
