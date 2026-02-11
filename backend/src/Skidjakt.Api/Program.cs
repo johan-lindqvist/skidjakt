@@ -151,39 +151,37 @@ api.MapGet(
 // POST /api/scrape/trigger
 api.MapPost(
 	"/scrape/trigger",
-	async (IServiceScopeFactory scopeFactory, ScrapeEventService eventService, ILogger<Program> logger, CancellationToken ct) =>
+	(IServiceScopeFactory scopeFactory, ScrapeEventService eventService, ILogger<Program> logger) =>
 	{
-		// Run scrape in background
-		_ = Task.Run(
-			async () =>
+		// Run scrape in background — use CancellationToken.None so the work
+		// survives after the 202 response is sent and the request connection closes.
+		_ = Task.Run(async () =>
+		{
+			try
 			{
-				try
-				{
-					using var scope = scopeFactory.CreateScope();
-					var scrapers = scope.ServiceProvider.GetRequiredService<IEnumerable<IDealScraper>>();
-					var repository = scope.ServiceProvider.GetRequiredService<IDealRepository>();
+				using var scope = scopeFactory.CreateScope();
+				var scrapers = scope.ServiceProvider.GetRequiredService<IEnumerable<IDealScraper>>();
+				var repository = scope.ServiceProvider.GetRequiredService<IDealRepository>();
 
-					foreach (var scraper in scrapers)
+				foreach (var scraper in scrapers)
+				{
+					try
 					{
-						try
-						{
-							var deals = await scraper.ScrapeDealsAsync(ct);
-							await repository.UpsertDealsAsync(scraper.Agency, deals, ct);
-							eventService.NotifyDealsUpdated(scraper.Agency, deals.Count);
-						}
-						catch (Exception ex)
-						{
-							logger.LogError(ex, "Failed to scrape {Agency}", scraper.Agency);
-						}
+						var deals = await scraper.ScrapeDealsAsync(CancellationToken.None);
+						await repository.UpsertDealsAsync(scraper.Agency, deals, CancellationToken.None);
+						eventService.NotifyDealsUpdated(scraper.Agency, deals.Count);
+					}
+					catch (Exception ex)
+					{
+						logger.LogError(ex, "Failed to scrape {Agency}", scraper.Agency);
 					}
 				}
-				catch (Exception ex)
-				{
-					logger.LogError(ex, "Scrape trigger failed");
-				}
-			},
-			ct
-		);
+			}
+			catch (Exception ex)
+			{
+				logger.LogError(ex, "Scrape trigger failed");
+			}
+		});
 
 		return Results.Accepted(value: new { message = "Scrape triggered" });
 	}
