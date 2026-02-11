@@ -26,7 +26,17 @@ public static class DependencyInjection
                 client.Timeout = TimeSpan.FromSeconds(30);
             }
         );
+        services.AddHttpClient(
+            "Default",
+            client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(30);
+            }
+        );
         services.AddScoped<IDealScraper, SkilinkScraper>();
+        services.AddScoped<IDealScraper, AlpresorScraper>();
+        services.AddScoped<IDealScraper, NortlanderScraper>();
+        services.AddScoped<IDealScraper, SlopestarScraper>();
         services.AddHostedService<ScrapingBackgroundService>();
         return services;
     }
