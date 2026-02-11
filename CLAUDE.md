@@ -29,6 +29,7 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
 - **PLAN.md**: Always keep up to date with current progress. Update checkboxes and phase statuses after completing work.
 - **README.md**: Keep in sync when adding new commands, scripts, or changing architecture.
 - **CLAUDE.md**: Update this file with new learnings, conventions, or gotchas discovered during development. This file should be a living document that prevents repeating mistakes.
+- **Git workflow**: Always commit changes after completing a task. Do NOT push — the user will push manually when ready.
 - **Git commits**: Use [Conventional Commits](https://www.conventionalcommits.org/) format:
   - `feat: add new feature`
   - `fix: bug fix`

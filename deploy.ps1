@@ -117,8 +117,13 @@ fi
     Write-Host "`n--- Installing Docker buildx (optional) ---" -ForegroundColor Green
     $buildxScript = @'
 mkdir -p ~/.docker/cli-plugins
+ARCH=$(uname -m)
+case "$ARCH" in
+    x86_64) ARCH="amd64" ;;
+    aarch64) ARCH="arm64" ;;
+esac
 BUILDX_VERSION=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
-curl -SL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)" -o ~/.docker/cli-plugins/docker-buildx 2>/dev/null || true
+curl -SL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-${ARCH}" -o ~/.docker/cli-plugins/docker-buildx 2>/dev/null || true
 chmod +x ~/.docker/cli-plugins/docker-buildx 2>/dev/null || true
 '@
     Invoke-Ssh $buildxScript
