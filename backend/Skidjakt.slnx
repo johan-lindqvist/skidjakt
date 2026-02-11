@@ -1,11 +1,11 @@
 <Solution>
-  <Folder Name="/src/">
-    <Project Path="src/Skidjakt.Api/Skidjakt.Api.csproj" />
-    <Project Path="src/Skidjakt.Core/Skidjakt.Core.csproj" />
-    <Project Path="src/Skidjakt.Infrastructure/Skidjakt.Infrastructure.csproj" />
-    <Project Path="src/Skidjakt.Scraper/Skidjakt.Scraper.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/Skidjakt.Tests/Skidjakt.Tests.csproj" />
-  </Folder>
+	<Folder Name="/src/">
+		<Project Path="src/Skidjakt.Api/Skidjakt.Api.csproj" />
+		<Project Path="src/Skidjakt.Core/Skidjakt.Core.csproj" />
+		<Project Path="src/Skidjakt.Infrastructure/Skidjakt.Infrastructure.csproj" />
+		<Project Path="src/Skidjakt.Scraper/Skidjakt.Scraper.csproj" />
+	</Folder>
+	<Folder Name="/tests/">
+		<Project Path="tests/Skidjakt.Tests/Skidjakt.Tests.csproj" />
+	</Folder>
 </Solution>

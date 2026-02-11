@@ -4,6 +4,6 @@ namespace Skidjakt.Core.Interfaces;
 
 public interface IDealScraper
 {
-    string Agency { get; }
-    Task<IReadOnlyList<Deal>> ScrapeDealsAsync(CancellationToken ct);
+	string Agency { get; }
+	Task<IReadOnlyList<Deal>> ScrapeDealsAsync(CancellationToken ct);
 }
