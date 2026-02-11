@@ -93,3 +93,4 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
 - **PowerShell SSH string escaping**: Use single-quote here-strings (`@'...'@`) when passing complex shell commands via SSH from PowerShell. Double-quote here-strings (`@"..."@`) will mangle quotes and variables.
 - **Alpine Docker images**: Use alpine-based .NET images for smaller size. Requires `icu-libs` for Swedish locale support (`apk add --no-cache icu-libs`).
 - **Initial scraping**: The scraping service checks the database on startup and only runs an initial scrape if no recent data exists. No need to manually trigger after fresh deploy.
+- **PowerShell module loading**: Use dot-sourcing (`. "path\script.ps1"`) not `Import-Module` for `.ps1` files. `Export-ModuleMember` only works in `.psm1` module files.

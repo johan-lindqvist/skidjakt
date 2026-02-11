@@ -39,7 +39,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Load environment configuration
-Import-Module "$PSScriptRoot\scripts\Load-Env.ps1" -Force
+. "$PSScriptRoot\scripts\Load-Env.ps1"
 try {
     $config = Get-EnvConfig
 } catch {

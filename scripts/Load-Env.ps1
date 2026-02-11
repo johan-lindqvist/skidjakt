@@ -65,5 +65,3 @@ function Get-SshArgs {
 
     return $sshArgs
 }
-
-Export-ModuleMember -Function Get-EnvConfig, Get-SshArgs
