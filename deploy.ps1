@@ -4,41 +4,70 @@
 
 .DESCRIPTION
     Connects via SSH to the droplet and pulls the latest code, rebuilds
-    Docker images, and restarts services. Assumes the repo is already
-    cloned at /opt/skidjakt on the droplet.
+    Docker images, and restarts services. Reads configuration from .env file
+    if parameters are not provided.
 
-.PARAMETER Host
-    The droplet IP address or hostname.
+.PARAMETER HostName
+    The droplet IP address or hostname (optional, reads from .env if not specified).
 
 .PARAMETER User
-    SSH user (default: root).
+    SSH user (optional, reads from .env or defaults to root).
 
 .PARAMETER KeyFile
-    Path to SSH private key (optional, uses default ssh agent if omitted).
+    Path to SSH private key (optional, reads from .env or uses ssh-agent).
+
+.PARAMETER RepoUrl
+    Git repository URL (optional, reads from .env if not specified).
 
 .PARAMETER Setup
     Run first-time setup on the droplet (install Docker, clone repo).
 
 .EXAMPLE
-    .\deploy.ps1 -Host 123.45.67.89
-    .\deploy.ps1 -Host 123.45.67.89 -Setup
-    .\deploy.ps1 -Host ski.example.com -User deploy -KeyFile ~/.ssh/id_ed25519
+    .\deploy.ps1
+    .\deploy.ps1 -Setup
+    .\deploy.ps1 -HostName custom-host -KeyFile "C:\path\to\key"
 #>
 
 param(
-    [Parameter(Mandatory = $true)]
     [string]$HostName,
-
-    [string]$User = "root",
-
+    [string]$User,
     [string]$KeyFile,
-
     [string]$RepoUrl,
-
     [switch]$Setup
 )
 
 $ErrorActionPreference = "Stop"
+
+# Load environment configuration
+Import-Module "$PSScriptRoot\scripts\Load-Env.ps1" -Force
+try {
+    $config = Get-EnvConfig
+} catch {
+    Write-Host $_.Exception.Message -ForegroundColor Red
+    exit 1
+}
+
+# Use command-line parameters or fall back to .env
+if (-not $HostName) {
+    $HostName = $config['DROPLET_HOST']
+}
+if (-not $User) {
+    $User = $config['DROPLET_USER']
+}
+if (-not $User) {
+    $User = 'root'
+}
+if (-not $KeyFile -and $config['SSH_KEY_PATH']) {
+    $KeyFile = $config['SSH_KEY_PATH']
+}
+if (-not $RepoUrl -and $config['GIT_REPO_URL']) {
+    $RepoUrl = $config['GIT_REPO_URL']
+}
+
+if (-not $HostName) {
+    Write-Host "Error: DROPLET_HOST not configured in .env file" -ForegroundColor Red
+    exit 1
+}
 
 function Invoke-Ssh {
     param([string]$Command)
