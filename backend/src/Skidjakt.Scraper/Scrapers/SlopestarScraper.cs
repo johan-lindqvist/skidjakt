@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using AngleSharp;
 using AngleSharp.Dom;
 using Microsoft.Extensions.Logging;
@@ -42,7 +43,11 @@ public class SlopestarScraper : IDealScraper
 
 				var url =
 					$"{AjaxUrl}?earlybookings_destination=&earlybookings_transport=&earlybookings_travelperiods=&earlybookings_pax=&earlybookings_page_id=lastminute&track_page={page}";
-				var html = await client.GetStringAsync(url, ct);
+				var response = await client.GetAsync(url, ct);
+				var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+				var charset = response.Content.Headers.ContentType?.CharSet;
+				var encoding = !string.IsNullOrEmpty(charset) ? Encoding.GetEncoding(charset) : Encoding.Latin1;
+				var html = encoding.GetString(bytes);
 
 				if (string.IsNullOrWhiteSpace(html))
 					break;

@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text;
 using AngleSharp;
 using AngleSharp.Dom;
 using Microsoft.Extensions.Logging;
@@ -39,7 +40,11 @@ public class SkilinkScraper : IDealScraper
 				ct.ThrowIfCancellationRequested();
 
 				var url = page == 1 ? ListUrl : $"{ListUrl}?pagenumber={page}";
-				var html = await client.GetStringAsync(url, ct);
+				var response = await client.GetAsync(url, ct);
+				var bytes = await response.Content.ReadAsByteArrayAsync(ct);
+				var charset = response.Content.Headers.ContentType?.CharSet;
+				var encoding = !string.IsNullOrEmpty(charset) ? Encoding.GetEncoding(charset) : Encoding.Latin1;
+				var html = encoding.GetString(bytes);
 				var document = await context.OpenAsync(req => req.Content(html), ct);
 
 				var deals = ParseDocument(document);
