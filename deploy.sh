@@ -87,17 +87,29 @@ echo -e "${YELLOW}=== Deploying Skidjakt ===${NC}"
 
 cd "$APP_DIR"
 
+# Detect if running behind nginx (use prod compose file with localhost-only ports)
+if systemctl is-active --quiet nginx 2>/dev/null && [[ -f docker-compose.prod.yml ]]; then
+    COMPOSE_FILE="-f docker-compose.prod.yml"
+    log "Detected nginx - using production compose file (localhost-only ports)"
+else
+    COMPOSE_FILE=""
+    log "No nginx detected - using default compose file (exposed ports)"
+fi
+
 log "Pulling latest code"
 git pull origin main
 
+# Remove stale override files (override merges with base, causing port conflicts)
+rm -f docker-compose.override.yml
+
 log "Building Docker images"
-$COMPOSE build
+$COMPOSE $COMPOSE_FILE build
 
 log "Stopping old containers"
-$COMPOSE down
+$COMPOSE $COMPOSE_FILE down
 
 log "Starting services"
-$COMPOSE up -d
+$COMPOSE $COMPOSE_FILE up -d
 
 log "Cleaning up old images"
 docker image prune -f
@@ -110,10 +122,10 @@ if curl -sf http://localhost:5000/api/health; then
     echo ""
     echo -e "${GREEN}Backend is healthy!${NC}"
 else
-    echo -e "${YELLOW}Backend not responding yet. Check logs: docker compose logs backend${NC}"
+    echo -e "${YELLOW}Backend not responding yet. Check logs: $COMPOSE $COMPOSE_FILE logs backend${NC}"
 fi
 
 echo ""
 echo -e "${YELLOW}=== Deploy complete ===${NC}"
-echo -e "Logs:   ${CYAN}cd $APP_DIR && docker compose logs -f${NC}"
-echo -e "Status: ${CYAN}cd $APP_DIR && docker compose ps${NC}"
+echo -e "Logs:   ${CYAN}cd $APP_DIR && $COMPOSE $COMPOSE_FILE logs -f${NC}"
+echo -e "Status: ${CYAN}cd $APP_DIR && $COMPOSE $COMPOSE_FILE ps${NC}"

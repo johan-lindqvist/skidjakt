@@ -155,27 +155,34 @@ Write-Host "`n=== Deploying Skidjakt to $HostName ===" -ForegroundColor Yellow
 Write-Host "`n--- Pulling latest code ---" -ForegroundColor Green
 Invoke-Ssh "cd /opt/skidjakt && git pull origin main"
 
-Write-Host "`n--- Building Docker images ---" -ForegroundColor Green
-$buildScript = @'
+Write-Host "`n--- Building and restarting services ---" -ForegroundColor Green
+$deployScript = @'
 cd /opt/skidjakt
-if docker compose version &>/dev/null 2>&1; then
-    docker compose build
-else
-    docker-compose build
-fi
-'@
-Invoke-Ssh $buildScript
 
-Write-Host "`n--- Restarting services ---" -ForegroundColor Green
-$upScript = @'
-cd /opt/skidjakt
+# Detect compose command
 if docker compose version &>/dev/null 2>&1; then
-    docker compose up -d
+    COMPOSE="docker compose"
+elif command -v docker-compose &>/dev/null; then
+    COMPOSE="docker-compose"
 else
-    docker-compose up -d
+    echo "ERROR: No docker compose found"; exit 1
 fi
+
+# Use prod compose file if nginx is running (localhost-only ports)
+COMPOSE_FILE=""
+if systemctl is-active --quiet nginx 2>/dev/null && [ -f docker-compose.prod.yml ]; then
+    COMPOSE_FILE="-f docker-compose.prod.yml"
+    echo "--- Detected nginx, using production compose file"
+fi
+
+# Remove stale override files (override merges with base, causing port conflicts)
+rm -f docker-compose.override.yml
+
+$COMPOSE $COMPOSE_FILE build
+$COMPOSE $COMPOSE_FILE down
+$COMPOSE $COMPOSE_FILE up -d
 '@
-Invoke-Ssh $upScript
+Invoke-Ssh $deployScript
 
 Write-Host "`n--- Cleaning up old images ---" -ForegroundColor Green
 Invoke-Ssh "docker image prune -f"

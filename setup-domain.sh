@@ -75,7 +75,9 @@ fi
 log "Stopping Docker containers temporarily (freeing port 80 for certbot)"
 
 cd "$APP_DIR"
-$COMPOSE down || true
+# Try both compose files since we don't know which was used to start
+$COMPOSE -f docker-compose.prod.yml down 2>/dev/null || true
+$COMPOSE down 2>/dev/null || true
 
 # -------------------------------------------------------------------
 # Step 3: Install nginx and certbot
@@ -142,13 +144,11 @@ log "Starting Docker containers with internal ports"
 
 cd "$APP_DIR"
 
-# Use production compose file (internal ports only, nginx handles external)
-if [[ -f docker-compose.prod.yml ]]; then
-    cp docker-compose.prod.yml docker-compose.override.yml
-    log "Using docker-compose.prod.yml as override"
-fi
+# Remove any stale override file (override merges with base, causing port conflicts)
+rm -f docker-compose.override.yml
 
-$COMPOSE up -d --build
+# Use production compose file directly (localhost-only ports, nginx handles external)
+$COMPOSE -f docker-compose.prod.yml up -d --build
 
 # -------------------------------------------------------------------
 # Step 7: Verify
