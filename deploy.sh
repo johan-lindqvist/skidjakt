@@ -63,6 +63,13 @@ if [[ "${1:-}" == "--setup" ]]; then
     docker --version
     docker compose version || docker-compose version
 
+    # Install buildx plugin to silence warnings (optional but recommended)
+    log "Installing Docker buildx plugin"
+    mkdir -p ~/.docker/cli-plugins
+    BUILDX_VERSION=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
+    curl -SL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)" -o ~/.docker/cli-plugins/docker-buildx 2>/dev/null || true
+    chmod +x ~/.docker/cli-plugins/docker-buildx 2>/dev/null || true
+
     log "Creating app directory"
     mkdir -p "$APP_DIR"
 

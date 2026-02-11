@@ -85,6 +85,15 @@ fi
 '@
     Invoke-Ssh $composeScript
 
+    Write-Host "`n--- Installing Docker buildx (optional) ---" -ForegroundColor Green
+    $buildxScript = @'
+mkdir -p ~/.docker/cli-plugins
+BUILDX_VERSION=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
+curl -SL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m)" -o ~/.docker/cli-plugins/docker-buildx 2>/dev/null || true
+chmod +x ~/.docker/cli-plugins/docker-buildx 2>/dev/null || true
+'@
+    Invoke-Ssh $buildxScript
+
     Write-Host "`n--- Cloning repository ---" -ForegroundColor Green
     Invoke-Ssh "rm -rf /opt/skidjakt && git clone $RepoUrl /opt/skidjakt"
 
