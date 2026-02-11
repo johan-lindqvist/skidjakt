@@ -73,29 +73,31 @@ if ($Setup) {
     Invoke-Ssh "systemctl enable docker && systemctl start docker"
 
     Write-Host "`n--- Installing Docker Compose ---" -ForegroundColor Green
-    Invoke-Ssh @"
+    $composeScript = @'
 if apt-cache show docker-compose-plugin &>/dev/null; then
     apt-get install -y docker-compose-plugin
 else
-    COMPOSE_VERSION=`$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -Po '\"tag_name\": \"\K.*?(?=\")')
-    curl -SL \"https://github.com/docker/compose/releases/download/`${COMPOSE_VERSION}/docker-compose-`$(uname -s)-`$(uname -m)\" -o /usr/local/bin/docker-compose
+    COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
+    curl -SL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
     chmod +x /usr/local/bin/docker-compose
     ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
 fi
-"@
+'@
+    Invoke-Ssh $composeScript
 
     Write-Host "`n--- Cloning repository ---" -ForegroundColor Green
-    Invoke-Ssh "git clone $RepoUrl /opt/skidjakt"
+    Invoke-Ssh "rm -rf /opt/skidjakt && git clone $RepoUrl /opt/skidjakt"
 
     Write-Host "`n--- Building and starting services ---" -ForegroundColor Green
-    Invoke-Ssh @"
+    $startScript = @'
 cd /opt/skidjakt
 if docker compose version &>/dev/null 2>&1; then
     docker compose up -d --build
 else
     docker-compose up -d --build
 fi
-"@
+'@
+    Invoke-Ssh $startScript
 
     Write-Host "`n=== Setup complete! ===" -ForegroundColor Yellow
     Write-Host "App should be running at http://$HostName" -ForegroundColor Green
@@ -111,24 +113,26 @@ Write-Host "`n--- Pulling latest code ---" -ForegroundColor Green
 Invoke-Ssh "cd /opt/skidjakt && git pull origin main"
 
 Write-Host "`n--- Building Docker images ---" -ForegroundColor Green
-Invoke-Ssh @"
+$buildScript = @'
 cd /opt/skidjakt
 if docker compose version &>/dev/null 2>&1; then
     docker compose build
 else
     docker-compose build
 fi
-"@
+'@
+Invoke-Ssh $buildScript
 
 Write-Host "`n--- Restarting services ---" -ForegroundColor Green
-Invoke-Ssh @"
+$upScript = @'
 cd /opt/skidjakt
 if docker compose version &>/dev/null 2>&1; then
     docker compose up -d
 else
     docker-compose up -d
 fi
-"@
+'@
+Invoke-Ssh $upScript
 
 Write-Host "`n--- Cleaning up old images ---" -ForegroundColor Green
 Invoke-Ssh "docker image prune -f"
