@@ -56,6 +56,15 @@
 - [x] Disable `NortlanderScraper` — requires Playwright (Next.js client-side search)
 - [x] HTML test fixtures for Skilink and Slopestar
 - [x] Unit tests: 53 total (38 scraper + 15 repository)
+- [x] Remove Alpresor/Nortlander stubs from DI (prevent 0-deal upsert nuking data)
+- [x] Zero-deal guard in ScrapingBackgroundService and scrape trigger
+- [x] Skilink scraper robustness (Accept header, status code logging/guard)
+- [x] New fields: RoomType, PersonCount, DistanceToLiftMeters/Slope/Centre
+- [x] Slopestar: parse room type, person count, distances from HTML
+- [x] API filters: maxPersons, includesTransfer
+- [x] Frontend: new fields in DealCard, person/transfer filters
+- [x] Corrupt data cleanup (Oesterrike → Österrike)
+- [x] Parser tests for new Slopestar fields (room type, person count, distances)
 - [ ] Implement `AlpresorScraper` with Playwright (site requires JS rendering)
 - [ ] Implement `NortlanderScraper` with Playwright (site requires JS rendering)
 

@@ -25,6 +25,11 @@ public record DealDto(
 	bool IncludesTransfer,
 	string? MealDescription,
 	int? LiftPassDays,
+	string? RoomType,
+	int? PersonCount,
+	int? DistanceToLiftMeters,
+	int? DistanceToSlopeMeters,
+	int? DistanceToCentreMeters,
 	DateTime FirstSeen,
 	DateTime LastSeen,
 	bool IsActive

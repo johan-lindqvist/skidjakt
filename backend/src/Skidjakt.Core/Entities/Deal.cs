@@ -26,6 +26,11 @@ public class Deal
 	public bool IncludesTransfer { get; set; }
 	public string? MealDescription { get; set; }
 	public int? LiftPassDays { get; set; }
+	public string? RoomType { get; set; }
+	public int? PersonCount { get; set; }
+	public int? DistanceToLiftMeters { get; set; }
+	public int? DistanceToSlopeMeters { get; set; }
+	public int? DistanceToCentreMeters { get; set; }
 	public DateTime FirstSeen { get; set; }
 	public DateTime LastSeen { get; set; }
 	public bool IsActive { get; set; } = true;

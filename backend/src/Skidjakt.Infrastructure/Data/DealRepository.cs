@@ -75,6 +75,18 @@ public class DealRepository : IDealRepository
 			q = q.Where(d => d.TransportType != null && query.TransportTypes.Contains(d.TransportType));
 		}
 
+		// Max persons
+		if (query.MaxPersons.HasValue)
+		{
+			q = q.Where(d => d.PersonCount != null && d.PersonCount <= query.MaxPersons.Value);
+		}
+
+		// Includes transfer
+		if (query.IncludesTransfer == true)
+		{
+			q = q.Where(d => d.IncludesTransfer);
+		}
+
 		// Sorting
 		q = query.SortBy?.ToLower() switch
 		{
@@ -185,6 +197,11 @@ public class DealRepository : IDealRepository
 				existing.IncludesTransfer = deal.IncludesTransfer;
 				existing.MealDescription = deal.MealDescription;
 				existing.LiftPassDays = deal.LiftPassDays;
+				existing.RoomType = deal.RoomType;
+				existing.PersonCount = deal.PersonCount;
+				existing.DistanceToLiftMeters = deal.DistanceToLiftMeters;
+				existing.DistanceToSlopeMeters = deal.DistanceToSlopeMeters;
+				existing.DistanceToCentreMeters = deal.DistanceToCentreMeters;
 				existing.LastSeen = now;
 				existing.IsActive = true;
 			}
@@ -238,6 +255,11 @@ public class DealRepository : IDealRepository
 			d.IncludesTransfer,
 			d.MealDescription,
 			d.LiftPassDays,
+			d.RoomType,
+			d.PersonCount,
+			d.DistanceToLiftMeters,
+			d.DistanceToSlopeMeters,
+			d.DistanceToCentreMeters,
 			d.FirstSeen,
 			d.LastSeen,
 			d.IsActive

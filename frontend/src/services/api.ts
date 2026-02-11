@@ -13,6 +13,8 @@ function buildQueryString(query: DealQuery): string {
 	if (query.fromDate) params.set('fromDate', query.fromDate);
 	if (query.toDate) params.set('toDate', query.toDate);
 	if (query.transportTypes?.length) query.transportTypes.forEach((t) => params.append('transportTypes', t));
+	if (query.maxPersons != null) params.set('maxPersons', query.maxPersons.toString());
+	if (query.includesTransfer) params.set('includesTransfer', 'true');
 	if (query.sortBy) params.set('sortBy', query.sortBy);
 	if (query.page) params.set('page', query.page.toString());
 	if (query.pageSize) params.set('pageSize', query.pageSize.toString());

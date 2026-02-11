@@ -41,6 +41,8 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
   - Always include `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>` (or current model) in commit body
 - **No secrets in code**: Never hardcode IP addresses, hostnames, passwords, or credentials in committed files. Use the `.env` file for all environment-specific configuration (see `.env.example` for template).
 - **Environment configuration**: All deployment scripts read from `.env` (gitignored). Committed files should only contain `.env.example` as a template with placeholder values.
+- **Testing**: Always write tests for new parsing/scraping code and ensure `dotnet test` passes before a task is considered complete.
+- **Build verification**: Always verify `dotnet build` succeeds before committing.
 
 ## Commands
 
@@ -90,6 +92,45 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
 - The `deploy.sh` script runs directly on the droplet (expects images to be pre-loaded via `docker load`)
 - Production compose (`docker-compose.prod.yml`) uses `image:` not `build:` — images are pre-built locally
 
+## Scraper Data Sources
+
+### Slopestar (active)
+- **AJAX endpoint**: `https://www.slopestar.se/includes/ajax_show-earlybookings.php?...&track_page={page}`
+- **HTML structure**: `div.st-list-discount-container` contains deal rows
+- **Available fields**: date, duration, destination, country (flag icon `des-flag` + h3 fallback), transport, accommodation, room type (span title), price, original price, discount, distances (`.distance-containers`), price-includes, booking URL
+- **Encoding**: ISO-8859-1 (Latin1)
+
+### Skilink (active)
+- **Listing URL**: `https://www.skilink.se/sista-minuten/`
+- **HTML structure**: `table#tourlist-table tr.item-row` with 6+ `<td>` columns
+- **Available fields**: date (meta itemprop), transport, destination, country (from URL path), price (meta itemprop or span.theprice), booking URL
+- **Encoding**: ISO-8859-1 (Latin1), requires `Accept: text/html` header
+- **Pagination**: `?pagenumber={n}`, total from `.pager` text "Sida X av Y"
+
+### Alpresor (disabled — needs Playwright)
+- Site is a client-side React app, requires JavaScript rendering
+
+### Nortlander (disabled — needs Playwright)
+- Site uses Next.js with client-side search, requires JavaScript rendering
+
+### Data field availability per source
+| Field | Slopestar | Skilink |
+|-------|-----------|---------|
+| Destination | Yes | Yes |
+| Country | Yes (flag/h3) | Yes (URL path) |
+| Date | Yes (DD.MM.YYYY) | Yes (meta/DD/M) |
+| Duration | Yes | No (default 7) |
+| Transport | Yes | Yes |
+| Price | Yes | Yes |
+| Original price | Yes | No |
+| Accommodation | Yes | No |
+| Room type | Yes (span title) | No |
+| Person count | Yes (from room type) | No |
+| Distances | Yes (.distance-containers) | No |
+| Lift pass | Yes (price-includes) | No |
+| Transfer | Yes (price-includes) | No |
+| Meals | Yes (price-includes) | No |
+
 ## Gotchas & Learnings
 - **Docker Compose version**: The droplet may have `docker-compose` (v1, hyphen) instead of `docker compose` (v2, space). All scripts auto-detect which is available.
 - **PowerShell SSH string escaping**: Use single-quote here-strings (`@'...'@`) when passing complex shell commands via SSH from PowerShell. Double-quote here-strings (`@"..."@`) will mangle quotes and variables.
@@ -98,3 +139,4 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
 - **PowerShell module loading**: Use dot-sourcing (`. "path\script.ps1"`) not `Import-Module` for `.ps1` files. `Export-ModuleMember` only works in `.psm1` module files.
 - **Docker Compose override files**: NEVER use `docker-compose.override.yml` to change ports. Compose merges sequence fields (like `ports`), causing duplicate port bindings. Use `-f docker-compose.prod.yml` explicitly instead.
 - **Docker builds on droplet**: The small DigitalOcean droplet can't handle .NET SDK multi-stage builds (100% CPU). Always build images locally and transfer via `docker save` + `scp` + `docker load`.
+- **Zero-deal guard**: `UpsertDealsAsync` marks all existing deals for an agency as inactive when the incoming list doesn't contain them. If a scraper returns 0 deals (e.g. network error), this nukes all data. Always guard: skip upsert if the scraper returns 0 deals.

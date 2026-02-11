@@ -23,11 +23,34 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Ensure database is created
+// Ensure database is created + migrate new columns
 using (var scope = app.Services.CreateScope())
 {
 	var db = scope.ServiceProvider.GetRequiredService<SkidjaktDbContext>();
 	await db.Database.EnsureCreatedAsync();
+
+	// Add new columns if they don't exist (ALTER TABLE is not idempotent in SQLite)
+	string[] newColumns =
+	[
+		"ALTER TABLE Deals ADD COLUMN RoomType TEXT",
+		"ALTER TABLE Deals ADD COLUMN PersonCount INTEGER",
+		"ALTER TABLE Deals ADD COLUMN DistanceToLiftMeters INTEGER",
+		"ALTER TABLE Deals ADD COLUMN DistanceToSlopeMeters INTEGER",
+		"ALTER TABLE Deals ADD COLUMN DistanceToCentreMeters INTEGER",
+	];
+	foreach (var sql in newColumns)
+	{
+		try
+		{
+			await db.Database.ExecuteSqlRawAsync(sql);
+		}
+		catch (Microsoft.Data.Sqlite.SqliteException)
+		{ /* column already exists */
+		}
+	}
+
+	// Clean corrupt data
+	await db.Database.ExecuteSqlRawAsync("UPDATE Deals SET Country = 'Österrike' WHERE Country = 'Oesterrike'");
 }
 
 app.UseSerilogRequestLogging();
@@ -55,6 +78,8 @@ api.MapGet(
 		DateOnly? fromDate,
 		DateOnly? toDate,
 		string? transportTypes,
+		int? maxPersons,
+		bool? includesTransfer,
 		string? sortBy,
 		int? page,
 		int? pageSize,
@@ -72,6 +97,8 @@ api.MapGet(
 			FromDate = fromDate,
 			ToDate = toDate,
 			TransportTypes = transportTypes?.Split(',', StringSplitOptions.RemoveEmptyEntries),
+			MaxPersons = maxPersons,
+			IncludesTransfer = includesTransfer,
 			SortBy = sortBy,
 			Page = page ?? 1,
 			PageSize = Math.Min(pageSize ?? 30, 100),
@@ -172,6 +199,11 @@ api.MapPost(
 					try
 					{
 						var deals = await scraper.ScrapeDealsAsync(CancellationToken.None);
+						if (deals.Count == 0)
+						{
+							logger.LogWarning("Scraper {Agency} returned 0 deals, skipping upsert", scraper.Agency);
+							continue;
+						}
 						await repository.UpsertDealsAsync(scraper.Agency, deals, CancellationToken.None);
 						eventService.NotifyDealsUpdated(scraper.Agency, deals.Count);
 					}

@@ -23,6 +23,11 @@ export interface Deal {
 	includesTransfer: boolean;
 	mealDescription: string | null;
 	liftPassDays: number | null;
+	roomType: string | null;
+	personCount: number | null;
+	distanceToLiftMeters: number | null;
+	distanceToSlopeMeters: number | null;
+	distanceToCentreMeters: number | null;
 	firstSeen: string;
 	lastSeen: string;
 	isActive: boolean;
@@ -38,6 +43,8 @@ export interface DealQuery {
 	fromDate?: string;
 	toDate?: string;
 	transportTypes?: string[];
+	maxPersons?: number;
+	includesTransfer?: boolean;
 	sortBy?: string;
 	page?: number;
 	pageSize?: number;

@@ -75,28 +75,57 @@ export function FilterBar() {
 					</div>
 				</div>
 
-				{/* Date range */}
-				<div>
-					<h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Datum</h4>
-					<div className="space-y-2">
-						<div>
-							<label className="text-xs text-slate-500 mb-1 block">Från</label>
-							<input
-								type="date"
-								value={filters.fromDate || ''}
-								onChange={(e) => filters.setDateRange(e.target.value || undefined, filters.toDate)}
-								className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none [color-scheme:dark]"
-							/>
+				{/* Date range + extra filters */}
+				<div className="space-y-4">
+					<div>
+						<h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Datum</h4>
+						<div className="space-y-2">
+							<div>
+								<label className="text-xs text-slate-500 mb-1 block">Från</label>
+								<input
+									type="date"
+									value={filters.fromDate || ''}
+									onChange={(e) => filters.setDateRange(e.target.value || undefined, filters.toDate)}
+									className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none [color-scheme:dark]"
+								/>
+							</div>
+							<div>
+								<label className="text-xs text-slate-500 mb-1 block">Till</label>
+								<input
+									type="date"
+									value={filters.toDate || ''}
+									onChange={(e) => filters.setDateRange(filters.fromDate, e.target.value || undefined)}
+									className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none [color-scheme:dark]"
+								/>
+							</div>
 						</div>
-						<div>
-							<label className="text-xs text-slate-500 mb-1 block">Till</label>
+					</div>
+
+					<div>
+						<h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Antal personer</h4>
+						<select
+							value={filters.maxPersons ?? ''}
+							onChange={(e) => filters.setMaxPersons(e.target.value ? Number(e.target.value) : undefined)}
+							className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none"
+						>
+							<option value="">Alla</option>
+							<option value="2">Max 2 pers.</option>
+							<option value="4">Max 4 pers.</option>
+							<option value="6">Max 6 pers.</option>
+							<option value="8">Max 8 pers.</option>
+						</select>
+					</div>
+
+					<div>
+						<label className="flex items-center gap-2 cursor-pointer group">
 							<input
-								type="date"
-								value={filters.toDate || ''}
-								onChange={(e) => filters.setDateRange(filters.fromDate, e.target.value || undefined)}
-								className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none [color-scheme:dark]"
+								type="checkbox"
+								checked={filters.includesTransfer ?? false}
+								onChange={(e) => filters.setIncludesTransfer(e.target.checked || undefined)}
+								className="rounded border-slate-600 bg-slate-700 text-sky-500 focus:ring-sky-500 focus:ring-offset-0"
 							/>
-						</div>
+							<span className="text-sm text-slate-300 group-hover:text-white">Transfer ingår</span>
+						</label>
 					</div>
 				</div>
 			</div>

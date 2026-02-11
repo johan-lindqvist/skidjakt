@@ -17,6 +17,7 @@ public static class DependencyInjection
 			client =>
 			{
 				client.DefaultRequestHeaders.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
+				client.DefaultRequestHeaders.Add("Accept", "text/html,application/xhtml+xml");
 				client.Timeout = TimeSpan.FromSeconds(30);
 			}
 		);
@@ -28,8 +29,6 @@ public static class DependencyInjection
 			}
 		);
 		services.AddScoped<IDealScraper, SkilinkScraper>();
-		services.AddScoped<IDealScraper, AlpresorScraper>();
-		services.AddScoped<IDealScraper, NortlanderScraper>();
 		services.AddScoped<IDealScraper, SlopestarScraper>();
 		services.AddHostedService<ScrapingBackgroundService>();
 		return services;

@@ -32,6 +32,7 @@ public class SkidjaktDbContext : DbContext
 			entity.Property(d => d.AccommodationName).HasMaxLength(300);
 			entity.Property(d => d.AccommodationType).HasMaxLength(100);
 			entity.Property(d => d.MealDescription).HasMaxLength(200);
+			entity.Property(d => d.RoomType).HasMaxLength(200);
 		});
 	}
 }

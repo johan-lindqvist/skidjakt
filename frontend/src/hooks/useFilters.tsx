@@ -8,6 +8,8 @@ interface FilterState extends DealQuery {
 	toggleTransportType: (type: string) => void;
 	setPriceRange: (min?: number, max?: number) => void;
 	setDateRange: (from?: string, to?: string) => void;
+	setMaxPersons: (maxPersons?: number) => void;
+	setIncludesTransfer: (includesTransfer?: boolean) => void;
 	setSortBy: (sort: string) => void;
 	setPage: (page: number) => void;
 	clearFilters: () => void;
@@ -33,6 +35,8 @@ function parseFiltersFromUrl(): DealQuery {
 		maxPrice: params.get('maxPrice') ? Number(params.get('maxPrice')) : undefined,
 		fromDate: params.get('fromDate') || undefined,
 		toDate: params.get('toDate') || undefined,
+		maxPersons: params.get('maxPersons') ? Number(params.get('maxPersons')) : undefined,
+		includesTransfer: params.get('includesTransfer') === 'true' ? true : undefined,
 		sortBy: params.get('sortBy') || 'price',
 		page: params.get('page') ? Number(params.get('page')) : 1,
 		pageSize: 30,
@@ -49,6 +53,8 @@ function syncFiltersToUrl(query: DealQuery) {
 	if (query.maxPrice != null) params.set('maxPrice', query.maxPrice.toString());
 	if (query.fromDate) params.set('fromDate', query.fromDate);
 	if (query.toDate) params.set('toDate', query.toDate);
+	if (query.maxPersons != null) params.set('maxPersons', query.maxPersons.toString());
+	if (query.includesTransfer) params.set('includesTransfer', 'true');
 	if (query.sortBy && query.sortBy !== 'price') params.set('sortBy', query.sortBy);
 	if (query.page && query.page > 1) params.set('page', query.page.toString());
 
@@ -103,6 +109,8 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 	);
 	const setPriceRange = useCallback((min?: number, max?: number) => setQuery((q) => ({ ...q, minPrice: min, maxPrice: max, page: 1 })), []);
 	const setDateRange = useCallback((from?: string, to?: string) => setQuery((q) => ({ ...q, fromDate: from, toDate: to, page: 1 })), []);
+	const setMaxPersons = useCallback((maxPersons?: number) => setQuery((q) => ({ ...q, maxPersons, page: 1 })), []);
+	const setIncludesTransfer = useCallback((includesTransfer?: boolean) => setQuery((q) => ({ ...q, includesTransfer, page: 1 })), []);
 	const setSortBy = useCallback((sort: string) => setQuery((q) => ({ ...q, sortBy: sort, page: 1 })), []);
 	const setPage = useCallback((page: number) => setQuery((q) => ({ ...q, page })), []);
 	const clearFilters = useCallback(() => setQuery({ ...defaultQuery }), []);
@@ -116,6 +124,8 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 		query.maxPrice,
 		query.fromDate,
 		query.toDate,
+		query.maxPersons,
+		query.includesTransfer,
 	].filter(Boolean).length;
 
 	return (
@@ -128,6 +138,8 @@ export function FilterProvider({ children }: { children: ReactNode }) {
 				toggleTransportType,
 				setPriceRange,
 				setDateRange,
+				setMaxPersons,
+				setIncludesTransfer,
 				setSortBy,
 				setPage,
 				clearFilters,

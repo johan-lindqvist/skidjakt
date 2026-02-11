@@ -41,6 +41,20 @@ public class SkilinkScraper : IDealScraper
 
 				var url = page == 1 ? ListUrl : $"{ListUrl}?pagenumber={page}";
 				var response = await client.GetAsync(url, ct);
+
+				_logger.LogDebug(
+					"Skilink page {Page} response: {StatusCode}, Content-Length: {Length}",
+					page,
+					(int)response.StatusCode,
+					response.Content.Headers.ContentLength
+				);
+
+				if (!response.IsSuccessStatusCode)
+				{
+					_logger.LogWarning("Skilink page {Page} returned {StatusCode}, aborting", page, (int)response.StatusCode);
+					break;
+				}
+
 				var bytes = await response.Content.ReadAsByteArrayAsync(ct);
 				var charset = response.Content.Headers.ContentType?.CharSet;
 				var encoding = !string.IsNullOrEmpty(charset) ? Encoding.GetEncoding(charset) : Encoding.Latin1;

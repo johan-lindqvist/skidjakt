@@ -1,4 +1,4 @@
-import { Plane, Ticket, UtensilsCrossed, Bus, ExternalLink, Calendar, Moon } from 'lucide-react';
+import { Plane, Ticket, UtensilsCrossed, Bus, ExternalLink, Calendar, Moon, Users, MapPin } from 'lucide-react';
 import type { Deal } from '../../types/deal';
 
 const agencyColors: Record<string, string> = {
@@ -67,8 +67,21 @@ export function DealCard({ deal }: DealCardProps) {
 					</span>
 				</div>
 
+				{/* Room type & person count */}
+				{(deal.roomType || deal.personCount) && (
+					<div className="flex items-center gap-3 text-sm text-slate-300 mb-3">
+						{deal.personCount && (
+							<span className="flex items-center gap-1.5">
+								<Users className="h-4 w-4 text-slate-500" />
+								{deal.personCount} pers.
+							</span>
+						)}
+						{deal.roomType && <span className="text-xs text-slate-500">{deal.roomType}</span>}
+					</div>
+				)}
+
 				{/* Inclusions */}
-				<div className="flex items-center gap-3 mb-4">
+				<div className="flex items-center gap-3 mb-3">
 					{deal.includesFlight && (
 						<span className="flex items-center gap-1 text-xs text-slate-400" title="Flyg ingår">
 							<Plane className="h-3.5 w-3.5" /> Flyg
@@ -90,6 +103,16 @@ export function DealCard({ deal }: DealCardProps) {
 						</span>
 					)}
 				</div>
+
+				{/* Distances */}
+				{(deal.distanceToLiftMeters || deal.distanceToSlopeMeters || deal.distanceToCentreMeters) && (
+					<div className="flex items-center gap-3 text-xs text-slate-500 mb-4">
+						<MapPin className="h-3.5 w-3.5 flex-shrink-0" />
+						{deal.distanceToLiftMeters != null && <span>Lift: {deal.distanceToLiftMeters} m</span>}
+						{deal.distanceToSlopeMeters != null && <span>Pist: {deal.distanceToSlopeMeters} m</span>}
+						{deal.distanceToCentreMeters != null && <span>Centrum: {deal.distanceToCentreMeters} m</span>}
+					</div>
+				)}
 
 				{/* Price */}
 				<div className="flex items-end justify-between">

@@ -104,6 +104,12 @@ public class ScrapingBackgroundService : BackgroundService
 				var deals = await scraper.ScrapeDealsAsync(ct);
 				_logger.LogInformation("Found {Count} deals from {Agency}", deals.Count, scraper.Agency);
 
+				if (deals.Count == 0)
+				{
+					_logger.LogWarning("Scraper {Agency} returned 0 deals, skipping upsert to preserve existing data", scraper.Agency);
+					continue;
+				}
+
 				await repository.UpsertDealsAsync(scraper.Agency, deals, ct);
 				_eventService.NotifyDealsUpdated(scraper.Agency, deals.Count);
 			}

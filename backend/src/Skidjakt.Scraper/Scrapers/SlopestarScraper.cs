@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using AngleSharp;
 using AngleSharp.Dom;
 using Microsoft.Extensions.Logging;
@@ -126,9 +127,9 @@ public class SlopestarScraper : IDealScraper
 		// Transport
 		var transportText = container.QuerySelector(".col-md-2-mbj-transport .data-discount-tabel")?.TextContent?.Trim();
 
-		// Accommodation
+		// Accommodation — text content is the name, title attribute may be room type
 		var accommodationSpan = container.QuerySelector(".col-md-2-mbj-indkvartering .data-discount-tabel span[title]");
-		var accommodation = accommodationSpan?.GetAttribute("title") ?? accommodationSpan?.TextContent?.Trim();
+		var accommodation = accommodationSpan?.TextContent?.Trim();
 
 		// Price (current price in <strong>)
 		var priceText = container.QuerySelector(".col-md-2-mbj-pris .data-discount-tabel strong")?.TextContent?.Trim();
@@ -164,6 +165,16 @@ public class SlopestarScraper : IDealScraper
 
 		var includesFlight = transportText?.Contains("Flyg", StringComparison.OrdinalIgnoreCase) ?? false;
 
+		// Room type from accommodation span title (e.g. "2-bäddsrum à 2 pers.")
+		// Only use title as room type if it differs from the accommodation name (i.e. it's actual room info)
+		var titleAttr = accommodationSpan?.GetAttribute("title");
+		var roomType = titleAttr != null && titleAttr != accommodation ? titleAttr : null;
+		var personCount = ParsePersonCount(roomType);
+
+		// Distances from .distance-containers
+		var distanceText = container.QuerySelector(".distance-containers")?.TextContent ?? "";
+		ParseDistances(distanceText, out var distToLift, out var distToSlope, out var distToCentre);
+
 		return new Deal
 		{
 			Agency = "slopestar",
@@ -183,6 +194,11 @@ public class SlopestarScraper : IDealScraper
 			IncludesMeals = includesMeals,
 			MealDescription = mealDescription,
 			IncludesTransfer = includesTransfer,
+			RoomType = roomType,
+			PersonCount = personCount,
+			DistanceToLiftMeters = distToLift,
+			DistanceToSlopeMeters = distToSlope,
+			DistanceToCentreMeters = distToCentre,
 		};
 	}
 
@@ -257,6 +273,38 @@ public class SlopestarScraper : IDealScraper
 			return date;
 
 		return null;
+	}
+
+	internal static int? ParsePersonCount(string? roomType)
+	{
+		if (string.IsNullOrEmpty(roomType))
+			return null;
+
+		// "2-bäddsrum à 2 pers." → extract last number before "pers"
+		var match = Regex.Match(roomType, @"(\d+)\s*pers");
+		return match.Success && int.TryParse(match.Groups[1].Value, out var count) ? count : null;
+	}
+
+	internal static void ParseDistances(string text, out int? lift, out int? slope, out int? centre)
+	{
+		lift = null;
+		slope = null;
+		centre = null;
+
+		if (string.IsNullOrEmpty(text))
+			return;
+
+		var liftMatch = Regex.Match(text, @"Liften:\s*(\d+)\s*m", RegexOptions.IgnoreCase);
+		if (liftMatch.Success)
+			lift = int.Parse(liftMatch.Groups[1].Value);
+
+		var slopeMatch = Regex.Match(text, @"Pisten:\s*(\d+)\s*m", RegexOptions.IgnoreCase);
+		if (slopeMatch.Success)
+			slope = int.Parse(slopeMatch.Groups[1].Value);
+
+		var centreMatch = Regex.Match(text, @"Centrum:\s*(\d+)\s*m", RegexOptions.IgnoreCase);
+		if (centreMatch.Success)
+			centre = int.Parse(centreMatch.Groups[1].Value);
 	}
 
 	private static string ExtractExternalId(string bookingUrl, string destination, int price)
