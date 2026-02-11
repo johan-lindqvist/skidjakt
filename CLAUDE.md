@@ -28,6 +28,7 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
 - **Solution format**: .slnx (not .sln)
 - **PLAN.md**: Always keep up to date with current progress. Update checkboxes and phase statuses after completing work.
 - **README.md**: Keep in sync when adding new commands, scripts, or changing architecture.
+- **CLAUDE.md**: Update this file with new learnings, conventions, or gotchas discovered during development. This file should be a living document that prevents repeating mistakes.
 - **Git commits**: Use [Conventional Commits](https://www.conventionalcommits.org/) format:
   - `feat: add new feature`
   - `fix: bug fix`
@@ -36,7 +37,9 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
   - `test: add or update tests`
   - `chore: maintenance tasks`
   - `perf: performance improvements`
-  - Always include `Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>` (or current model) in commit body
+  - Always include `Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>` (or current model) in commit body
+- **No secrets in code**: Never hardcode IP addresses, hostnames, passwords, or credentials in committed files. Use the `.env` file for all environment-specific configuration (see `.env.example` for template).
+- **Environment configuration**: All deployment scripts read from `.env` (gitignored). Committed files should only contain `.env.example` as a template with placeholder values.
 
 ## Commands
 
@@ -58,9 +61,12 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
 - Format TS: `cd frontend && npx prettier --write src/`
 
 ### Deployment
-- Deploy from Windows: `.\deploy.ps1 -Host YOUR_DROPLET_IP`
-- First-time setup: `.\deploy.ps1 -Host YOUR_DROPLET_IP -Setup -RepoUrl <git-url>`
+- Deploy from Windows: `.\deploy.ps1` (reads host from .env)
+- First-time setup: `.\deploy.ps1 -Setup` (reads repo URL from .env)
 - On the droplet: `bash /opt/skidjakt/deploy.sh`
+- Check logs: `.\check-logs.ps1`, `.\check-logs.ps1 -Follow`, `.\check-logs.ps1 -Errors`
+- Setup HTTPS: `.\setup-https.ps1`
+- Diagnose HTTPS: `.\diagnose-https.ps1`
 
 ## API Endpoints
 - `GET /api/deals` - List deals with filtering (search, agencies, countries, price range, dates, sort, pagination)
@@ -78,5 +84,12 @@ Ski deal aggregator that scrapes last-minute ski travel deals from Swedish agenc
 - The SQLite database is auto-created on first run at `data/skidjakt.db`
 - The scraping background service runs every 30 minutes (5 in dev)
 - Development is done on Windows; production runs on Linux (DigitalOcean droplet)
+- All deployment scripts read configuration from `.env` file (see `.env.example`)
 - The `deploy.ps1` script runs from Windows and SSHs to the droplet
 - The `deploy.sh` script runs directly on the droplet
+
+## Gotchas & Learnings
+- **Docker Compose version**: The droplet may have `docker-compose` (v1, hyphen) instead of `docker compose` (v2, space). All scripts auto-detect which is available.
+- **PowerShell SSH string escaping**: Use single-quote here-strings (`@'...'@`) when passing complex shell commands via SSH from PowerShell. Double-quote here-strings (`@"..."@`) will mangle quotes and variables.
+- **Alpine Docker images**: Use alpine-based .NET images for smaller size. Requires `icu-libs` for Swedish locale support (`apk add --no-cache icu-libs`).
+- **Initial scraping**: The scraping service checks the database on startup and only runs an initial scrape if no recent data exists. No need to manually trigger after fresh deploy.
