@@ -69,8 +69,20 @@ if ($Setup) {
     Write-Host "`n=== First-time droplet setup ===" -ForegroundColor Yellow
 
     Write-Host "`n--- Installing Docker ---" -ForegroundColor Green
-    Invoke-Ssh "apt-get update && apt-get install -y docker.io docker-compose-plugin"
+    Invoke-Ssh "apt-get update && apt-get install -y docker.io curl git"
     Invoke-Ssh "systemctl enable docker && systemctl start docker"
+
+    Write-Host "`n--- Installing Docker Compose ---" -ForegroundColor Green
+    Invoke-Ssh @"
+if apt-cache show docker-compose-plugin &>/dev/null; then
+    apt-get install -y docker-compose-plugin
+else
+    COMPOSE_VERSION=`$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -Po '\"tag_name\": \"\K.*?(?=\")')
+    curl -SL \"https://github.com/docker/compose/releases/download/`${COMPOSE_VERSION}/docker-compose-`$(uname -s)-`$(uname -m)\" -o /usr/local/bin/docker-compose
+    chmod +x /usr/local/bin/docker-compose
+    ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+fi
+"@
 
     Write-Host "`n--- Cloning repository ---" -ForegroundColor Green
     Invoke-Ssh "git clone $RepoUrl /opt/skidjakt"

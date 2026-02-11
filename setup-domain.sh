@@ -73,6 +73,26 @@ apt-get install -y nginx certbot python3-certbot-nginx
 systemctl enable nginx
 systemctl start nginx
 
+# Ensure Docker and Docker Compose are installed
+if ! command -v docker &> /dev/null; then
+    log "Installing Docker"
+    apt-get install -y docker.io
+    systemctl enable docker
+    systemctl start docker
+fi
+
+if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/null; then
+    log "Installing Docker Compose"
+    if apt-cache show docker-compose-plugin &>/dev/null; then
+        apt-get install -y docker-compose-plugin
+    else
+        COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
+        curl -SL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        chmod +x /usr/local/bin/docker-compose
+        ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+    fi
+fi
+
 # -------------------------------------------------------------------
 # Step 3: Stop Docker containers on port 80 temporarily
 # -------------------------------------------------------------------

@@ -36,9 +36,28 @@ if [[ "${1:-}" == "--setup" ]]; then
 
     log "Installing Docker"
     apt-get update
-    apt-get install -y docker.io docker-compose-plugin curl
+
+    # Install Docker
+    apt-get install -y docker.io curl git
     systemctl enable docker
     systemctl start docker
+
+    # Install Docker Compose (v2 via plugin or standalone)
+    if apt-cache show docker-compose-plugin &>/dev/null; then
+        log "Installing docker-compose-plugin"
+        apt-get install -y docker-compose-plugin
+    else
+        log "Installing docker-compose standalone"
+        COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
+        curl -SL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+        chmod +x /usr/local/bin/docker-compose
+        ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+    fi
+
+    # Verify installation
+    log "Verifying Docker installation"
+    docker --version
+    docker compose version || docker-compose version
 
     log "Creating app directory"
     mkdir -p "$APP_DIR"
