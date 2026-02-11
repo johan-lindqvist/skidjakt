@@ -5,6 +5,8 @@ import { FilterBar } from './components/filters/FilterBar';
 import { FilterChips } from './components/filters/FilterChips';
 import { SortSelector } from './components/filters/SortSelector';
 import { DealGrid } from './components/deals/DealGrid';
+import { DealStats } from './components/deals/DealStats';
+import { Pagination } from './components/deals/Pagination';
 import { useDeals } from './hooks/useDeals';
 import { useFilters } from './hooks/useFilters';
 import { useDealStream } from './hooks/useDealStream';
@@ -24,6 +26,8 @@ function AppContent() {
           onChange={filters.setSearch}
         />
 
+        <DealStats />
+
         <FilterBar />
 
         <div className="flex items-center justify-between gap-4 flex-wrap">
@@ -37,28 +41,11 @@ function AppContent() {
           totalCount={data?.totalCount || 0}
         />
 
-        {/* Pagination */}
-        {data && data.totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-4">
-            <button
-              onClick={() => filters.setPage(filters.page! - 1)}
-              disabled={filters.page === 1}
-              className="px-4 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:border-sky-500 transition-colors"
-            >
-              Föregående
-            </button>
-            <span className="text-sm text-slate-400">
-              Sida {filters.page} av {data.totalPages}
-            </span>
-            <button
-              onClick={() => filters.setPage(filters.page! + 1)}
-              disabled={filters.page === data.totalPages}
-              className="px-4 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg text-white disabled:opacity-50 disabled:cursor-not-allowed hover:border-sky-500 transition-colors"
-            >
-              Nästa
-            </button>
-          </div>
-        )}
+        <Pagination
+          page={filters.page || 1}
+          totalPages={data?.totalPages || 1}
+          onPageChange={filters.setPage}
+        />
       </main>
 
       <Footer />
