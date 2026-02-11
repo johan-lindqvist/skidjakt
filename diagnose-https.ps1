@@ -78,7 +78,7 @@ Test-Service "nginx sites-enabled" "ls -lh /etc/nginx/sites-enabled/ 2>/dev/null
 Test-Service "docker-compose override" "ls -lh /opt/skidjakt/docker-compose.override.yml 2>/dev/null || echo 'No override file'"
 
 # 6. Check Docker container ports
-Test-Service "docker ports" "cd /opt/skidjakt && docker compose ps"
+Test-Service "docker ports" "cd /opt/skidjakt && (docker compose ps 2>/dev/null || docker-compose ps 2>/dev/null || echo 'Could not list containers')"
 
 # 7. Check if ports 80 and 443 are listening
 Test-Service "listening ports" "ss -tlnp | grep ':80\|:443' || echo 'Ports 80/443 not listening'"

@@ -4,8 +4,8 @@
 #
 # This script:
 #   1. Installs nginx and certbot
-#   2. Configures nginx reverse proxy
-#   3. Obtains Let's Encrypt SSL certificate
+#   2. Obtains Let's Encrypt SSL certificate
+#   3. Configures nginx reverse proxy
 #   4. Updates docker-compose to use internal ports
 #
 # Prerequisites:
@@ -29,13 +29,13 @@ RED='\033[0;31m'
 NC='\033[0m'
 
 log()   { echo -e "${GREEN}--- $1${NC}"; }
-warn()  { echo -e "${YELLOW}⚠ $1${NC}"; }
-error() { echo -e "${RED}✗ $1${NC}"; exit 1; }
+warn()  { echo -e "${YELLOW}--- $1${NC}"; }
+error() { echo -e "${RED}--- $1${NC}"; exit 1; }
 
 echo -e "${YELLOW}"
-echo "╔════════════════════════════════════════════════════════╗"
-echo "║  Setting up $DOMAIN with HTTPS  ║"
-echo "╚════════════════════════════════════════════════════════╝"
+echo "========================================================"
+echo "  Setting up $DOMAIN with HTTPS"
+echo "========================================================"
 echo -e "${NC}"
 
 # -------------------------------------------------------------------
@@ -43,27 +43,42 @@ echo -e "${NC}"
 # -------------------------------------------------------------------
 log "Checking prerequisites"
 
-# Check if running as root
 if [[ $EUID -ne 0 ]]; then
    error "This script must be run as root (use sudo)"
 fi
 
+# Detect Docker Compose command early
+if docker compose version &>/dev/null 2>&1; then
+    COMPOSE="docker compose"
+elif command -v docker-compose &>/dev/null; then
+    COMPOSE="docker-compose"
+else
+    error "Neither 'docker compose' nor 'docker-compose' is available. Install Docker first."
+fi
+log "Using compose command: $COMPOSE"
+
 # Check DNS
 echo -n "Checking DNS for $DOMAIN... "
-if host "$DOMAIN" > /dev/null 2>&1; then
+if command -v host &>/dev/null && host "$DOMAIN" > /dev/null 2>&1; then
     IP=$(host "$DOMAIN" | grep "has address" | head -1 | awk '{print $4}')
-    echo -e "${GREEN}✓ Resolves to $IP${NC}"
+    echo -e "${GREEN}Resolves to $IP${NC}"
+elif command -v dig &>/dev/null && dig +short "$DOMAIN" | head -1 | grep -q .; then
+    IP=$(dig +short "$DOMAIN" | head -1)
+    echo -e "${GREEN}Resolves to $IP${NC}"
 else
-    error "DNS not configured. Create an A record for $DOMAIN first."
-fi
-
-# Check if Docker containers are running
-if ! docker compose -f "$APP_DIR/docker-compose.yml" ps | grep -q "Up"; then
-    warn "Docker containers not running. Deploy the app first."
+    warn "Could not verify DNS. Make sure an A record for $DOMAIN exists."
 fi
 
 # -------------------------------------------------------------------
-# Step 2: Install nginx and certbot
+# Step 2: Stop Docker containers on port 80 temporarily
+# -------------------------------------------------------------------
+log "Stopping Docker containers temporarily (freeing port 80 for certbot)"
+
+cd "$APP_DIR"
+$COMPOSE down || true
+
+# -------------------------------------------------------------------
+# Step 3: Install nginx and certbot
 # -------------------------------------------------------------------
 log "Installing nginx and certbot"
 
@@ -73,47 +88,13 @@ apt-get install -y nginx certbot python3-certbot-nginx
 systemctl enable nginx
 systemctl start nginx
 
-# Ensure Docker and Docker Compose are installed
-if ! command -v docker &> /dev/null; then
-    log "Installing Docker"
-    apt-get install -y docker.io
-    systemctl enable docker
-    systemctl start docker
-fi
-
-if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/null; then
-    log "Installing Docker Compose"
-    if apt-cache show docker-compose-plugin &>/dev/null; then
-        apt-get install -y docker-compose-plugin
-    else
-        COMPOSE_VERSION=$(curl -s https://api.github.com/repos/docker/compose/releases/latest | grep -Po '"tag_name": "\K.*?(?=")')
-        curl -SL "https://github.com/docker/compose/releases/download/${COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-        chmod +x /usr/local/bin/docker-compose
-        ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
-    fi
-fi
-
-# Detect Docker Compose command
-if docker compose version &>/dev/null 2>&1; then
-    COMPOSE="docker compose"
-elif command -v docker-compose &>/dev/null; then
-    COMPOSE="docker-compose"
-else
-    error "Neither 'docker compose' nor 'docker-compose' is available"
-fi
-
-# -------------------------------------------------------------------
-# Step 3: Stop Docker containers on port 80 temporarily
-# -------------------------------------------------------------------
-log "Stopping Docker containers temporarily (for certbot)"
-
-cd "$APP_DIR"
-$COMPOSE down
-
 # -------------------------------------------------------------------
 # Step 4: Obtain SSL certificate
 # -------------------------------------------------------------------
 log "Obtaining Let's Encrypt certificate for $DOMAIN"
+
+# Remove default site if it conflicts
+rm -f /etc/nginx/sites-enabled/default
 
 # Create temporary nginx config for certbot verification
 cat > "$NGINX_CONF" <<EOF
@@ -123,6 +104,11 @@ server {
 
     location /.well-known/acme-challenge/ {
         root /var/www/html;
+    }
+
+    location / {
+        return 200 'Setting up...';
+        add_header Content-Type text/plain;
     }
 }
 EOF
@@ -138,45 +124,50 @@ certbot --nginx -d "$DOMAIN" --non-interactive --agree-tos --email admin@linkasa
 # -------------------------------------------------------------------
 log "Configuring nginx reverse proxy"
 
-# Copy the full proxy config
+# Overwrite with the full proxy config (references the certs certbot just created)
 cp "$APP_DIR/nginx-proxy.conf" "$NGINX_CONF"
 
 # Test and reload
-nginx -t && systemctl reload nginx
+if nginx -t; then
+    systemctl reload nginx
+    echo -e "${GREEN}nginx config is valid${NC}"
+else
+    warn "nginx config test failed, check $NGINX_CONF"
+fi
 
 # -------------------------------------------------------------------
-# Step 6: Update Docker Compose to use internal ports
+# Step 6: Start Docker with internal ports
 # -------------------------------------------------------------------
-log "Updating Docker Compose to use internal ports"
+log "Starting Docker containers with internal ports"
 
 cd "$APP_DIR"
 
-# Use production compose file
+# Use production compose file (internal ports only, nginx handles external)
 if [[ -f docker-compose.prod.yml ]]; then
-    ln -sf docker-compose.prod.yml docker-compose.override.yml
+    cp docker-compose.prod.yml docker-compose.override.yml
+    log "Using docker-compose.prod.yml as override"
 fi
 
-# Start with internal ports only
 $COMPOSE up -d --build
 
 # -------------------------------------------------------------------
 # Step 7: Verify
 # -------------------------------------------------------------------
-log "Waiting for services to start"
+log "Waiting for services to start..."
 sleep 10
 
 log "Testing backend health"
 if curl -sf http://localhost:5000/api/health > /dev/null; then
-    echo -e "${GREEN}✓ Backend is healthy${NC}"
+    echo -e "${GREEN}Backend is healthy${NC}"
 else
-    warn "Backend health check failed. Check logs: docker compose logs backend"
+    warn "Backend health check failed. Check: $COMPOSE logs backend"
 fi
 
 log "Testing HTTPS"
 if curl -sf "https://$DOMAIN/api/health" > /dev/null; then
-    echo -e "${GREEN}✓ HTTPS is working${NC}"
+    echo -e "${GREEN}HTTPS is working!${NC}"
 else
-    warn "HTTPS check failed. Check nginx logs: sudo tail -f /var/log/nginx/skidjakt.error.log"
+    warn "HTTPS check failed. Check: tail -f /var/log/nginx/skidjakt.error.log"
 fi
 
 # -------------------------------------------------------------------
@@ -184,20 +175,21 @@ fi
 # -------------------------------------------------------------------
 log "Configuring SSL certificate auto-renewal"
 
-# Certbot installs a systemd timer automatically
-systemctl enable certbot.timer
-systemctl start certbot.timer
+if systemctl list-unit-files | grep -q certbot.timer; then
+    systemctl enable certbot.timer
+    systemctl start certbot.timer
+fi
 
 echo ""
-echo -e "${GREEN}╔════════════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  ✓ Setup complete!                                    ║${NC}"
-echo -e "${GREEN}╚════════════════════════════════════════════════════════╝${NC}"
+echo -e "${GREEN}========================================================"
+echo -e "  Setup complete!"
+echo -e "========================================================${NC}"
 echo ""
 echo -e "Your app is now running at: ${YELLOW}https://$DOMAIN${NC}"
 echo ""
 echo "Useful commands:"
-echo "  View nginx logs:   sudo tail -f /var/log/nginx/skidjakt.error.log"
-echo "  View app logs:     cd $APP_DIR && docker compose logs -f"
-echo "  Reload nginx:      sudo systemctl reload nginx"
-echo "  Renew cert:        sudo certbot renew"
+echo "  View nginx logs:   tail -f /var/log/nginx/skidjakt.error.log"
+echo "  View app logs:     cd $APP_DIR && $COMPOSE logs -f"
+echo "  Reload nginx:      systemctl reload nginx"
+echo "  Renew cert:        certbot renew"
 echo ""
