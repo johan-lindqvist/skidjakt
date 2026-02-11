@@ -149,10 +149,14 @@ api.MapGet(
 );
 
 // POST /api/scrape/trigger
+var scrapeLock = new SemaphoreSlim(1, 1);
 api.MapPost(
 	"/scrape/trigger",
 	(IServiceScopeFactory scopeFactory, ScrapeEventService eventService, ILogger<Program> logger) =>
 	{
+		if (!scrapeLock.Wait(0))
+			return Results.Conflict(new { message = "Scrape already in progress" });
+
 		// Run scrape in background — use CancellationToken.None so the work
 		// survives after the 202 response is sent and the request connection closes.
 		_ = Task.Run(async () =>
@@ -180,6 +184,10 @@ api.MapPost(
 			catch (Exception ex)
 			{
 				logger.LogError(ex, "Scrape trigger failed");
+			}
+			finally
+			{
+				scrapeLock.Release();
 			}
 		});
 

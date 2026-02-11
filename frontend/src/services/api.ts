@@ -34,8 +34,9 @@ export const api = {
 
 	getStats: (): Promise<DealStats> => fetchJson(`${API_BASE}/deals/stats`),
 
-	triggerScrape: (): Promise<void> =>
+	triggerScrape: (): Promise<Response> =>
 		fetch(`${API_BASE}/scrape/trigger`, { method: 'POST' }).then((res) => {
-			if (!res.ok) throw new Error(`API error: ${res.status}`);
+			if (!res.ok && res.status !== 409) throw new Error(`API error: ${res.status}`);
+			return res;
 		}),
 };

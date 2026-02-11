@@ -20,7 +20,7 @@ export function FilterBar() {
 				)}
 			</div>
 
-			<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+			<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 				{/* Agencies */}
 				<div>
 					<h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Resebyrå</h4>
@@ -72,6 +72,31 @@ export function FilterBar() {
 								<span className="text-sm text-slate-300 group-hover:text-white">{type}</span>
 							</label>
 						))}
+					</div>
+				</div>
+
+				{/* Date range */}
+				<div>
+					<h4 className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">Datum</h4>
+					<div className="space-y-2">
+						<div>
+							<label className="text-xs text-slate-500 mb-1 block">Från</label>
+							<input
+								type="date"
+								value={filters.fromDate || ''}
+								onChange={(e) => filters.setDateRange(e.target.value || undefined, filters.toDate)}
+								className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none [color-scheme:dark]"
+							/>
+						</div>
+						<div>
+							<label className="text-xs text-slate-500 mb-1 block">Till</label>
+							<input
+								type="date"
+								value={filters.toDate || ''}
+								onChange={(e) => filters.setDateRange(filters.fromDate, e.target.value || undefined)}
+								className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm text-white focus:border-sky-500 focus:outline-none [color-scheme:dark]"
+							/>
+						</div>
 					</div>
 				</div>
 			</div>

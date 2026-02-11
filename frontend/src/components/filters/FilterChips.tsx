@@ -25,6 +25,11 @@ export function FilterChips() {
 		const label = `${filters.minPrice || 0} - ${filters.maxPrice || '\u221E'} kr`;
 		chips.push({ label, onRemove: () => filters.setPriceRange() });
 	}
+	if (filters.fromDate || filters.toDate) {
+		const from = filters.fromDate || '...';
+		const to = filters.toDate || '...';
+		chips.push({ label: `${from} – ${to}`, onRemove: () => filters.setDateRange() });
+	}
 
 	if (chips.length === 0) return null;
 
